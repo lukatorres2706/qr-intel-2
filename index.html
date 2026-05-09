@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#007f73">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="QR Intel">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>Leitor QR Universal</title>
+    <link rel="manifest" href="./manifest.webmanifest">
+    <link rel="apple-touch-icon" href="./icon.svg">
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="scanner-panel" aria-label="Leitor de QR Code">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Leitor universal</p>
+            <h1>QR Intel</h1>
+          </div>
+          <div class="status-pill" id="supportStatus">Verificando...</div>
+        </header>
+
+        <div class="camera-frame">
+          <div id="reader"></div>
+          <div class="scan-mask" aria-hidden="true">
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <div class="empty-state" id="emptyState">
+            <strong>Pronto para ler</strong>
+            <span>A câmera aparece aqui quando você iniciar.</span>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button class="primary" id="startButton" type="button">
+            <span aria-hidden="true">▣</span>
+            Iniciar câmera
+          </button>
+          <button id="stopButton" type="button" disabled>
+            <span aria-hidden="true">■</span>
+            Parar
+          </button>
+          <label class="file-control">
+            <input id="imageInput" type="file" accept="image/*">
+            <span aria-hidden="true">⌁</span>
+            Ler imagem
+          </label>
+        </div>
+
+        <div class="manual-entry">
+          <label for="manualInput">Colar conteúdo do QR</label>
+          <div>
+            <textarea id="manualInput" rows="3" placeholder="Cole aqui um link, payload Pix, WIFI:T:WPA;S:MinhaRede;P:senha;; etc."></textarea>
+            <button id="interpretButton" type="button">Interpretar</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="result-panel" aria-label="Resultado interpretado">
+        <div class="result-header">
+          <div>
+            <p class="eyebrow">Resultado</p>
+            <h2 id="resultTitle">Nenhum QR lido ainda</h2>
+          </div>
+          <button id="copyButton" type="button" disabled>Copiar</button>
+        </div>
+
+        <div class="summary" id="summary">
+          Aponte a câmera para um QR Code, envie uma imagem ou cole o conteúdo para interpretar.
+        </div>
+
+        <div class="actions" id="actions"></div>
+
+        <div class="details">
+          <h3>Conteúdo bruto</h3>
+          <pre id="rawOutput">Nada por enquanto.</pre>
+        </div>
+
+        <div class="details">
+          <h3>Campos detectados</h3>
+          <dl id="fields"></dl>
+        </div>
+
+        <div class="history">
+          <div class="history-title">
+            <h3>Histórico local</h3>
+            <button id="clearHistoryButton" type="button">Limpar</button>
+          </div>
+          <ol id="historyList"></ol>
+        </div>
+      </section>
+    </main>
+
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
