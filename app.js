@@ -167,14 +167,88 @@ async function readImage(file) {
     const decodedText = await detector.scanFile(file, true);
     showResult(interpret(decodedText));
   } catch {
+    const fallbackText = await scanImageWithCanvas(file);
+
+    if (fallbackText) {
+      showResult(interpret(fallbackText));
+      return;
+    }
+
     showResult({
       type: "QR não encontrado",
-      summary: "Não encontrei um QR Code nessa imagem. Tente uma imagem mais nítida ou recortada.",
+      summary: "Não consegui ler essa foto. Tente aproximar mais, deixar o QR inteiro dentro da imagem ou use Iniciar câmera para leitura ao vivo.",
       raw: "",
-      fields: { Arquivo: file.name },
+      fields: {
+        Arquivo: file.name,
+        Dica: "Evite reflexo, sombra e foto inclinada."
+      },
       actions: []
     }, false);
   }
+}
+
+async function scanImageWithCanvas(file) {
+  if (!("jsQR" in window)) return "";
+
+  const image = await loadImage(file);
+  const canvases = buildImageCanvases(image);
+
+  for (const canvas of canvases) {
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    const code = jsQR(imageData.data, imageData.width, imageData.height, {
+      inversionAttempts: "attemptBoth"
+    });
+
+    if (code?.data) return code.data;
+  }
+
+  return "";
+}
+
+function loadImage(file) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    const url = URL.createObjectURL(file);
+    image.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(image);
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Imagem inválida"));
+    };
+    image.src = url;
+  });
+}
+
+function buildImageCanvases(image) {
+  const maxSide = 1800;
+  const scale = Math.min(1, maxSide / Math.max(image.naturalWidth, image.naturalHeight));
+  const width = Math.max(1, Math.round(image.naturalWidth * scale));
+  const height = Math.max(1, Math.round(image.naturalHeight * scale));
+  const canvases = [];
+
+  canvases.push(drawImageToCanvas(image, width, height, 0));
+  canvases.push(drawImageToCanvas(image, width, height, 90));
+  canvases.push(drawImageToCanvas(image, width, height, 180));
+  canvases.push(drawImageToCanvas(image, width, height, 270));
+
+  return canvases;
+}
+
+function drawImageToCanvas(image, width, height, rotation) {
+  const quarterTurn = rotation === 90 || rotation === 270;
+  const canvas = document.createElement("canvas");
+  canvas.width = quarterTurn ? height : width;
+  canvas.height = quarterTurn ? width : height;
+
+  const context = canvas.getContext("2d");
+  context.translate(canvas.width / 2, canvas.height / 2);
+  context.rotate((rotation * Math.PI) / 180);
+  context.drawImage(image, -width / 2, -height / 2, width, height);
+
+  return canvas;
 }
 
 function interpret(rawInput) {
