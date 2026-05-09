@@ -1,4 +1,4 @@
-const CACHE_NAME = "qr-intel-v1";
+const CACHE_NAME = "qr-intel-v2";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -6,16 +6,19 @@ const APP_SHELL = [
   "./app.js",
   "./manifest.webmanifest",
   "./icon.svg",
-  "https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"
+  "https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js",
+  "https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"
 ];
 
 self.addEventListener("install", (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)).catch(() => undefined)
   );
 });
 
 self.addEventListener("activate", (event) => {
+  clients.claim();
   event.waitUntil(
     caches.keys().then((keys) => Promise.all(
       keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
