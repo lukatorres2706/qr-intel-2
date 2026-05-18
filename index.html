@@ -1,104 +1,115 @@
-<!doctype html>
+!doctype html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#007f73">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-title" content="QR Intel">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <title>Leitor QR Universal</title>
-    <link rel="manifest" href="./manifest.webmanifest">
-    <link rel="apple-touch-icon" href="./icon.svg">
-    <link rel="stylesheet" href="./styles.css">
-  </head>
+    <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <meta name="theme-color" content="#007f73">
+          <meta name="apple-mobile-web-app-capable" content="yes">
+          <meta name="apple-mobile-web-app-title" content="Credenciais">
+          <meta name="apple-mobile-web-app-status-bar-style" content="default">
+          <title>Leitor de Credenciais</title>
+        <link rel="manifest" href="./manifest.webmanifest">
+        <link rel="apple-touch-icon" href="./icon.svg">
+        <link rel="stylesheet" href="./styles.css">
+    </head>
   <body>
-    <main class="app-shell">
-      <section class="scanner-panel" aria-label="Leitor de QR Code e código de barras">
-        <header class="topbar">
-          <div>
-            <p class="eyebrow">Leitor universal</p>
-            <h1>QR Intel</h1>
-          </div>
-          <div class="status-pill" id="supportStatus">Verificando...</div>
-        </header>
-
-        <div class="camera-frame">
-          <div id="reader"></div>
-          <div class="scan-mask" aria-hidden="true">
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
-          <div class="empty-state" id="emptyState">
-            <strong>Pronto para ler</strong>
-            <span>A câmera aparece aqui quando você iniciar.</span>
-          </div>
-        </div>
-
-        <div class="controls">
-          <button class="primary" id="startButton" type="button">
-            <span aria-hidden="true">▣</span>
-            Iniciar câmera
-          </button>
-          <button id="stopButton" type="button" disabled>
-            <span aria-hidden="true">■</span>
-            Parar
-          </button>
-          <label class="file-control">
-            <input id="imageInput" type="file" accept="image/*">
-            <span aria-hidden="true">⌁</span>
-            Ler imagem
-          </label>
-        </div>
-
-        <div class="manual-entry">
-          <label for="manualInput">Colar conteúdo do código</label>
-          <div>
-            <textarea id="manualInput" rows="3" placeholder="Cole aqui um EAN/UPC, link, payload Pix, WIFI:T:WPA;S:MinhaRede;P:senha;; etc."></textarea>
-            <button id="interpretButton" type="button">Interpretar</button>
-          </div>
-        </div>
-      </section>
-
-      <section class="result-panel" aria-label="Resultado interpretado">
-        <div class="result-header">
-          <div>
-            <p class="eyebrow">Resultado</p>
-            <h2 id="resultTitle">Nenhum QR lido ainda</h2>
-          </div>
-          <button id="copyButton" type="button" disabled>Copiar</button>
-        </div>
-
-        <div class="summary" id="summary">
-          Aponte a câmera para um QR Code ou código de barras, envie uma imagem ou cole o conteúdo para interpretar.
-        </div>
-
-        <div class="actions" id="actions"></div>
-
-        <div class="details">
-          <h3>Conteúdo bruto</h3>
-          <pre id="rawOutput">Nada por enquanto.</pre>
-        </div>
-
-        <div class="details">
-          <h3>Campos detectados</h3>
-          <dl id="fields"></dl>
-        </div>
-
-        <div class="history">
-          <div class="history-title">
-            <h3>Histórico local</h3>
-            <button id="clearHistoryButton" type="button">Limpar</button>
-          </div>
-          <ol id="historyList"></ol>
-        </div>
-      </section>
-    </main>
-
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
-    <script src="./app.js"></script>
+        <main class="app-shell">
+                <section class="scanner-panel" aria-label="Cadastro de credenciais">
+                          <header class="topbar">
+                                      <div>
+                                                    <p class="eyebrow">Credenciamento</p>p>
+                                                    <h1>Credenciais</h1>
+                                      </div>
+                                    <div class="status-pill ready" id="supportStatus">OCR + cadastro</div>
+                          </header>header>
+                
+                        <div class="ocr-panel" aria-label="Leitura do cracha por camera">
+                                  <div>
+                                              <p class="eyebrow">Camera do celular</p>p>
+                                              <h2>Ler cracha</h2>
+                                  </div>
+                                  <label class="file-control">
+                                              <input id="badgeImageInput" type="file" accept="image/*" capture="environment">
+                                              Fotografar cracha
+                                  </label>label>
+                                  <p id="ocrStatus">A foto sera convertida em texto e usada para preencher os campos abaixo.</p>p>
+                        </div>
+                
+                        <form class="credential-form" id="credentialForm" autocomplete="on">
+                                  <label class="field" for="nameInput">
+                                              <span>Nome</span>
+                                              <input id="nameInput" name="nome" type="text" autocomplete="name" required>
+                                  </label>label>
+                        
+                                  <label class="field" for="companyInput">
+                                              <span>Empresa</span>
+                                              <input id="companyInput" name="empresa" type="text" autocomplete="organization" required>
+                                  </label>label>
+                        
+                                  <label class="field" for="roleInput">
+                                              <span>Funcao</span>
+                                              <input id="roleInput" name="funcao" type="text" autocomplete="organization-title" required>
+                                  </label>label>
+                        
+                                  <label class="field" for="categoryInput">
+                                              <span>Categoria</span>
+                                              <select id="categoryInput" name="categoria" required>
+                                                            <option value="">Selecionar</option>option>
+                                                            <option value="Expositor">Expositor</option>option>
+                                                            <option value="Visitante">Visitante</option>option>
+                                                            <option value="Outros">Outros</option>option>
+                                              </select>select>
+                                  </label>label>
+                        
+                                  <div class="controls">
+                                              <button class="primary" id="saveButton" type="submit">Registrar</button>button>
+                                              <button id="resetButton" type="button">Limpar campos</button>button>
+                                  </div>
+                        </form>form>
+                </section>section>
+        
+              <section class="result-panel" aria-label="Credencial registrada">
+                      <div class="result-header">
+                                <div>
+                                            <p class="eyebrow">Registro</p>p>
+                                            <h2 id="resultTitle">Nenhuma credencial ainda</h2>
+                                </div>
+                                <button id="copyButton" type="button" disabled>Copiar</button>button>
+                      </div>
+              
+                      <div class="summary" id="summary">
+                                Preencha Nome, Empresa, Funcao e Categoria para gerar uma credencial local.
+                      </div>
+              
+                      <div class="actions">
+                                <button id="exportButton" type="button" disabled>Exportar CSV</button>button>
+                      </div>
+              
+                      <div class="details">
+                                <h3>Campos da credencial</h3>
+                                <dl id="fields"></dl>dl>
+                      </div>
+              
+                      <div class="details">
+                                <h3>Registro atual</h3>
+                                <pre id="rawOutput">Nada por enquanto.</pre>pre>
+                      </div>
+              
+                      <div class="history">
+                                <div class="history-title">
+                                            <h3>Historico local</h3>
+                                            <button id="clearHistoryButton" type="button">Limpar</button>button>
+                                </div>
+                                <ol id="historyList"></ol>ol>
+                      </div>
+              </section>section>
+        </main>main>
+  
+      <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+      <script src="./app.js"></script>
   </body>
-</html>
+</html>html>
+</span></span></h2></h1>
+                                      </div>
+  </body></title>
+    </head>
