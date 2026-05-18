@@ -15,6 +15,26 @@ const actions = document.querySelector("#actions");
 const historyList = document.querySelector("#historyList");
 const cameraFrame = document.querySelector(".camera-frame");
 
+const BARCODE_FORMAT_LABELS = {
+  AZTEC: "Aztec",
+  CODABAR: "Codabar",
+  CODE_39: "Code 39",
+  CODE_93: "Code 93",
+  CODE_128: "Code 128",
+  DATA_MATRIX: "Data Matrix",
+  EAN_8: "EAN-8",
+  EAN_13: "EAN-13",
+  ITF: "ITF",
+  MAXICODE: "MaxiCode",
+  PDF_417: "PDF417",
+  QR_CODE: "QR Code",
+  RSS_14: "RSS-14",
+  RSS_EXPANDED: "RSS Expanded",
+  UPC_A: "UPC-A",
+  UPC_E: "UPC-E",
+  UPC_EAN_EXTENSION: "UPC/EAN Extension"
+};
+
 let detector;
 let scannerRunning = false;
 let lastValue = "";
@@ -28,12 +48,41 @@ function initDetector() {
   }
 
   if (!detector) {
-    detector = new Html5Qrcode("reader", { verbose: false });
+    detector = new Html5Qrcode("reader", {
+      formatsToSupport: getScannerFormats(),
+      verbose: false
+    });
   }
 
-  supportStatus.textContent = "Pronto no iOS";
+  supportStatus.textContent = "QR + barras";
   supportStatus.className = "status-pill ready";
   return true;
+}
+
+function getScannerFormats() {
+  const formats = window.Html5QrcodeSupportedFormats;
+
+  if (!formats) return undefined;
+
+  return [
+    "QR_CODE",
+    "AZTEC",
+    "CODABAR",
+    "CODE_39",
+    "CODE_93",
+    "CODE_128",
+    "DATA_MATRIX",
+    "EAN_8",
+    "EAN_13",
+    "ITF",
+    "MAXICODE",
+    "PDF_417",
+    "RSS_14",
+    "RSS_EXPANDED",
+    "UPC_A",
+    "UPC_E",
+    "UPC_EAN_EXTENSION"
+  ].map((key) => formats[key]).filter((format) => format !== undefined);
 }
 
 function saveHistory(item) {
@@ -125,15 +174,13 @@ async function startCamera() {
     { facingMode: "environment" },
     {
       fps: 12,
-      aspectRatio: 1.333,
-      qrbox: (viewfinderWidth, viewfinderHeight) => {
-        const edge = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.72);
-        return { width: edge, height: edge };
-      }
+      aspectRatio: 1.333
     },
-    (decodedText) => {
+    (decodedText, decodedResult) => {
       if (decodedText && decodedText !== lastValue) {
-        showResult(interpret(decodedText));
+        showResult(interpret(decodedText, {
+          format: getDecodedFormatName(decodedResult)
+        }));
       }
     }
   );
@@ -164,9 +211,20 @@ async function readImage(file) {
   }
 
   try {
-    const decodedText = await detector.scanFile(file, true);
-    showResult(interpret(decodedText));
+    const decoded = await scanFileWithMetadata(file);
+    showResult(interpret(decoded.raw, {
+      format: decoded.format
+    }));
   } catch {
+    const barcodeResult = await scanImageWithBarcodeDetector(file);
+
+    if (barcodeResult.raw) {
+      showResult(interpret(barcodeResult.raw, {
+        format: barcodeResult.format
+      }));
+      return;
+    }
+
     const fallbackText = await scanImageWithCanvas(file);
 
     if (fallbackText) {
@@ -175,8 +233,8 @@ async function readImage(file) {
     }
 
     showResult({
-      type: "QR não encontrado",
-      summary: "Não consegui ler essa foto. Tente aproximar mais, deixar o QR inteiro dentro da imagem ou use Iniciar câmera para leitura ao vivo.",
+      type: "Código não encontrado",
+      summary: "Não consegui ler essa foto. Tente aproximar mais, deixar o código inteiro dentro da imagem ou use Iniciar câmera para leitura ao vivo.",
       raw: "",
       fields: {
         Arquivo: file.name,
@@ -185,6 +243,74 @@ async function readImage(file) {
       actions: []
     }, false);
   }
+}
+
+async function scanFileWithMetadata(file) {
+  if (typeof detector.scanFileV2 === "function") {
+    const result = await detector.scanFileV2(file, true);
+
+    return {
+      raw: result?.decodedText || result?.text || "",
+      format: getDecodedFormatName(result)
+    };
+  }
+
+  return {
+    raw: await detector.scanFile(file, true),
+    format: ""
+  };
+}
+
+function getDecodedFormatName(decodedResult) {
+  const format = decodedResult?.result?.format;
+  const rawName = format?.formatName || format?.format || format;
+
+  if (typeof rawName === "string") return rawName;
+
+  const enumKey = Object.entries(window.Html5QrcodeSupportedFormats || {})
+    .find(([, value]) => value === rawName)?.[0];
+
+  return enumKey || "";
+}
+
+async function scanImageWithBarcodeDetector(file) {
+  if (!("BarcodeDetector" in window)) return { raw: "", format: "" };
+
+  try {
+    const barcodeDetector = new BarcodeDetector({
+      formats: [
+        "aztec",
+        "codabar",
+        "code_39",
+        "code_93",
+        "code_128",
+        "data_matrix",
+        "ean_8",
+        "ean_13",
+        "itf",
+        "pdf417",
+        "qr_code",
+        "upc_a",
+        "upc_e"
+      ]
+    });
+    const image = await loadImage(file);
+    const canvases = buildImageCanvases(image);
+
+    for (const canvas of canvases) {
+      const codes = await barcodeDetector.detect(canvas);
+      if (codes.length && codes[0].rawValue) {
+        return {
+          raw: codes[0].rawValue,
+          format: codes[0].format || ""
+        };
+      }
+    }
+  } catch {
+    return { raw: "", format: "" };
+  }
+
+  return { raw: "", format: "" };
 }
 
 async function scanImageWithCanvas(file) {
@@ -251,11 +377,13 @@ function drawImageToCanvas(image, width, height, rotation) {
   return canvas;
 }
 
-function interpret(rawInput) {
+function interpret(rawInput, metadata = {}) {
   const raw = String(rawInput || "").trim();
   const upper = raw.toUpperCase();
+  const format = normalizeBarcodeFormat(metadata.format || "");
 
   if (!raw) return baseResult("Vazio", "Nenhum conteúdo para interpretar.", raw);
+  if (format && format !== "QR_CODE") return parseBarcode(raw, format);
   if (/^https?:\/\//i.test(raw)) return parseUrl(raw);
   if (/^WIFI:/i.test(raw)) return parseWifi(raw);
   if (/^BEGIN:VCARD/i.test(raw)) return parseVcard(raw);
@@ -267,6 +395,7 @@ function interpret(rawInput) {
   if (looksLikePix(raw)) return parsePix(raw);
   if (looksLikeJson(raw)) return parseJson(raw);
   if (upper.startsWith("OTPAUTH://")) return parseOtp(raw);
+  if (looksLikeCommonBarcode(raw)) return parseBarcode(raw, inferBarcodeFormat(raw));
 
   return baseResult("Texto", "Conteúdo textual comum. Dá para copiar, pesquisar ou usar em outro app.", raw, {
     Tamanho: `${raw.length} caracteres`
@@ -325,6 +454,43 @@ function parseWifi(raw) {
     Senha: parts.P || "",
     Oculta: parts.H || "false"
   });
+}
+
+function normalizeBarcodeFormat(format) {
+  return String(format || "")
+    .trim()
+    .toUpperCase()
+    .replace(/[\s-]+/g, "_")
+    .replace("PDF417", "PDF_417")
+    .replace("UPC_A", "UPC_A")
+    .replace("UPC_E", "UPC_E");
+}
+
+function looksLikeCommonBarcode(raw) {
+  return /^[0-9]{8,14}$/.test(raw);
+}
+
+function inferBarcodeFormat(raw) {
+  if (/^[0-9]{8}$/.test(raw)) return "EAN_8";
+  if (/^[0-9]{12}$/.test(raw)) return "UPC_A";
+  if (/^[0-9]{13}$/.test(raw)) return "EAN_13";
+  if (/^[0-9]{14}$/.test(raw)) return "ITF";
+  return "";
+}
+
+function parseBarcode(raw, format = "") {
+  const normalizedFormat = normalizeBarcodeFormat(format);
+  const label = BARCODE_FORMAT_LABELS[normalizedFormat] || normalizedFormat || "Não informado";
+  const checkDigit = /^[0-9]{8,14}$/.test(raw) ? raw.slice(-1) : "";
+
+  return baseResult("Código de barras", `Código ${label} lido com ${raw.length} caractere(s).`, raw, {
+    Formato: label,
+    Conteúdo: raw,
+    Tamanho: `${raw.length} caractere(s)`,
+    "Dígito verificador": checkDigit
+  }, [
+    { label: "Pesquisar código", href: `https://www.google.com/search?q=${encodeURIComponent(raw)}`, external: true }
+  ]);
 }
 
 function parseSemicolonFields(body) {
