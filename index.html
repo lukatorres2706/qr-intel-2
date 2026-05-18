@@ -14,7 +14,7 @@
   </head>
   <body>
     <main class="app-shell">
-      <section class="scanner-panel" aria-label="Leitor de QR Code">
+      <section class="scanner-panel" aria-label="Leitor de QR Code e código de barras">
         <header class="topbar">
           <div>
             <p class="eyebrow">Leitor universal</p>
@@ -54,9 +54,9 @@
         </div>
 
         <div class="manual-entry">
-          <label for="manualInput">Colar conteúdo do QR</label>
+          <label for="manualInput">Colar conteúdo do código</label>
           <div>
-            <textarea id="manualInput" rows="3" placeholder="Cole aqui um link, payload Pix, WIFI:T:WPA;S:MinhaRede;P:senha;; etc."></textarea>
+            <textarea id="manualInput" rows="3" placeholder="Cole aqui um EAN/UPC, link, payload Pix, WIFI:T:WPA;S:MinhaRede;P:senha;; etc."></textarea>
             <button id="interpretButton" type="button">Interpretar</button>
           </div>
         </div>
@@ -72,7 +72,7 @@
         </div>
 
         <div class="summary" id="summary">
-          Aponte a câmera para um QR Code, envie uma imagem ou cole o conteúdo para interpretar.
+          Aponte a câmera para um QR Code ou código de barras, envie uma imagem ou cole o conteúdo para interpretar.
         </div>
 
         <div class="actions" id="actions"></div>
