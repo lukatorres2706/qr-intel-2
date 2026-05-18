@@ -1,4 +1,4 @@
-const CACHE_NAME = "qr-intel-v2";
+const CACHE_NAME = "qr-intel-v3";
 const APP_SHELL = [
   "./",
   "./index.html",
